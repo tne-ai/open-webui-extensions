@@ -4,7 +4,10 @@ author: richtong
 author_url: https://github.com/richtong
 source_url: https://github.com/tne-ai/open-webui-extension
 version: 0.1.2
-comment: "Updates the Perplexity Models to Feb 2025 availables
+comment: >
+    Adds Perplexity models including reasoning ones as of Feb 2025
+    Also no pass ruff and mypy linting
+    Adds a timeout to the post set at an hour
 
 Based on
 author: justinh-rahb and moblangeois
@@ -39,6 +42,10 @@ class Pipe:
         PERPLEXITY_API_KEY: str = Field(
             default="",
             description="Required API key to access Perplexity services.",
+        )
+        TIMEOUT: int = Field(
+            default=3600,
+            description="The timeout for the model call.",
         )
 
     def __init__(self) -> None:
@@ -103,7 +110,11 @@ class Pipe:
         ]
 
     def pipe(self, body: dict, __user__: dict) -> str | Generator | Iterator:
-        """Generate JSON and call model."""
+        """Generate JSON and call model.
+
+        Note the timeout is set to one hour which should be long enough for
+        reasoning models.
+        """
         print(f"pipe:{__name__}")
 
         if not self.valves.PERPLEXITY_API_KEY:
@@ -143,7 +154,7 @@ class Pipe:
                 json=payload,
                 headers=headers,
                 stream=True,
-                timeout=60,
+                timeout=self.valves.TIMEOUT,
             )
 
             r.raise_for_status()
