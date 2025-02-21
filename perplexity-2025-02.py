@@ -1,36 +1,29 @@
-"""title: Perplexity Manifold Pipe 2025-02.
-
+"""
+title: Perplexity Manifold Pipe 2025
 author: richtong
 author_url: https://github.com/richtong
-source_url: https://github.com/tne-ai/open-webui-extension
+source_url: https://github.com/tne-ai/open-webui-functions/blob/perplexity-2025-02.py
 version: 0.1.2
-comment: >
-    Adds Perplexity models including reasoning ones as of Feb 2025
-    Also no pass ruff and mypy linting
-    Adds a timeout to the post set at an hour
 
-Based on
-author: justinh-rahb and moblangeois
-author_url: https://github.com/open-webui
-funding_url: https://github.com/open-webui
-version: 0.1.1
-license: MIT
-
+original authors:
+  author: justinh-rahb and moblangeois
+  author_url: https://github.com/open-webui
+  funding_url: https://github.com/open-webui
+  version: 0.1.1
+  license: MIT
 """
 
-from collections.abc import Generator, Iterator
-
-import requests
-from open_webui.utils.misc import pop_system_message
 from pydantic import BaseModel, Field
+from typing import Optional, Union, Generator, Iterator
+from open_webui.utils.misc import get_last_user_message
+from open_webui.utils.misc import pop_system_message
+
+import os
+import requests
 
 
 class Pipe:
-    """Call Perplexity Sonar Models."""
-
     class Valves(BaseModel):
-        """Set variables for pipeline needs an API Key."""
-
         NAME_PREFIX: str = Field(
             default="Perplexity/",
             description="The prefix applied before the model names.",
@@ -43,19 +36,12 @@ class Pipe:
             default="",
             description="Required API key to access Perplexity services.",
         )
-        TIMEOUT: int = Field(
-            default=3600,
-            description="The timeout for the model call.",
-        )
 
-    def __init__(self) -> None:
-        """Initialize the parameters."""
+    def __init__(self):
         self.type = "manifold"
         self.valves = self.Valves()
 
-    # up to date as for Feb 20 2025
-    def pipes(self) -> list[dict[str, str]]:
-        """No model enumerate so hard code the id and friendly names."""
+    def pipes(self):
         return [
             {
                 "id": "sonar-reasoning-pro",
@@ -77,7 +63,6 @@ class Pipe:
                 "id": "r1-1776",
                 "name": f"{self.valves.NAME_PREFIX}Deepseek-R1 128k",
             },
-            # these models are obsolete but still supported
             {
                 "id": "llama-3.1-sonar-small-128k-online",
                 "name": f"{self.valves.NAME_PREFIX}Llama 3.1 Sonar Small 128k Online",
@@ -90,36 +75,29 @@ class Pipe:
                 "id": "llama-3.1-sonar-huge-128k-online",
                 "name": f"{self.valves.NAME_PREFIX}Llama 3.1 Sonar Huge 128k Online",
             },
-            # deprecated as of Feb 2025
-            # {
-            #     "id": "llama-3.1-sonar-small-128k-chat",
-            #     "name": f"{self.valves.NAME_PREFIX}Llama 3.1 Sonar Small 128k Chat",
-            # },
-            # {
-            #     "id": "llama-3.1-sonar-large-128k-chat",
-            #     "name": f"{self.valves.NAME_PREFIX}Llama 3.1 Sonar Large 128k Chat",
-            # },
-            # {
-            #     "id": "llama-3.1-8b-instruct",
-            #     "name": f"{self.valves.NAME_PREFIX}Llama 3.1 8B Instruct",
-            # },
-            # {
-            #     "id": "llama-3.1-70b-instruct",
-            #     "name": f"{self.valves.NAME_PREFIX}Llama 3.1 70B Instruct",
-            # },
+            {
+                "id": "llama-3.1-sonar-small-128k-chat",
+                "name": f"{self.valves.NAME_PREFIX}Llama 3.1 Sonar Small 128k Chat",
+            },
+            {
+                "id": "llama-3.1-sonar-large-128k-chat",
+                "name": f"{self.valves.NAME_PREFIX}Llama 3.1 Sonar Large 128k Chat",
+            },
+            {
+                "id": "llama-3.1-8b-instruct",
+                "name": f"{self.valves.NAME_PREFIX}Llama 3.1 8B Instruct",
+            },
+            {
+                "id": "llama-3.1-70b-instruct",
+                "name": f"{self.valves.NAME_PREFIX}Llama 3.1 70B Instruct",
+            },
         ]
 
-    def pipe(self, body: dict, __user__: dict) -> str | Generator | Iterator:
-        """Generate JSON and call model.
-
-        Note the timeout is set to one hour which should be long enough for
-        reasoning models.
-        """
+    def pipe(self, body: dict, __user__: dict) -> Union[str, Generator, Iterator]:
         print(f"pipe:{__name__}")
 
         if not self.valves.PERPLEXITY_API_KEY:
-            e = "PERPLEXITY_API_KEY not provided in the valves."
-            raise Exception(e)
+            raise Exception("PERPLEXITY_API_KEY not provided in the valves.")
 
         headers = {
             "Authorization": f"Bearer {self.valves.PERPLEXITY_API_KEY}",
@@ -154,7 +132,6 @@ class Pipe:
                 json=payload,
                 headers=headers,
                 stream=True,
-                timeout=self.valves.TIMEOUT,
             )
 
             r.raise_for_status()
